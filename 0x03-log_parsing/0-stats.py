@@ -1,40 +1,40 @@
 #!/usr/bin/python3
+"""Performs log parsing from stdin"""
 
-# Define valid status codes
-VALID_STATUS_CODES = {200, 301, 400, 401, 403, 404, 405, 500}
+import re
+import sys
+counter = 0
+file_size = 0
+statusC_counter = {200: 0, 301: 0, 400: 0,
+                   401: 0, 403: 0, 404: 0, 405: 0, 500: 0}
 
-# Initialize variables
-total_size = 0
-line_count = 0
-status_code_counts = {code: 0 for code in VALID_STATUS_CODES}
 
-try:
-  for line in sys.stdin:
-    # Parse the log line
+def printCodes(dict, file_s):
+    """Prints the status code and the number of times they appear"""
+    print("File size: {}".format(file_s))
+    for key in sorted(dict.keys()):
+        if statusC_counter[key] != 0:
+            print("{}: {}".format(key, dict[key]))
+
+
+if __name__ == "__main__":
     try:
-      ip, date, _, _, status_code, file_size = line.strip().split()
-      file_size = int(file_size)
-      status_code = int(status_code)
-    except ValueError:
-      continue  # Skip lines with invalid format
-
-    # Update metrics
-    total_size += file_size
-    line_count += 1
-    status_code_counts[status_code] += 1
-
-    # Print statistics every 10 lines
-    if line_count % 10 == 0:
-      print(f"Total file size: {total_size}")
-      for code, count in sorted(status_code_counts.items()):
-        if count > 0:
-          print(f"{code}: {count}")
-      print()  # Print an empty line for separation
-
-  # Print final statistics on keyboard interrupt
-except KeyboardInterrupt:
-  print(f"Total file size: {total_size}")
-  for code, count in sorted(status_code_counts.items()):
-    if count > 0:
-      print(f"{code}: {count}")
-
+        for line in sys.stdin:
+            split_string = re.split('- |"|"| " " ', str(line))
+            statusC_and_file_s = split_string[-1]
+            if counter != 0 and counter % 10 == 0:
+                printCodes(statusC_counter, file_size)
+            counter = counter + 1
+            try:
+                statusC = int(statusC_and_file_s.split()[0])
+                f_size = int(statusC_and_file_s.split()[1])
+                # print("Status Code {} size {}".format(statusC, f_size))
+                if statusC in statusC_counter:
+                    statusC_counter[statusC] += 1
+                file_size = file_size + f_size
+            except:
+                pass
+        printCodes(statusC_counter, file_size)
+    except KeyboardInterrupt:
+        printCodes(statusC_counter, file_size)
+        raise
